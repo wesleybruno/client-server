@@ -1,11 +1,13 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
+	"time"
 )
 
 type Cotacao struct {
@@ -31,10 +33,23 @@ func main() {
 
 func makeRequest() (*Cotacao, error) {
 
-	resp, err := http.Get("http://localhost:8080/cotacao")
+	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(ctx, 300*time.Millisecond)
+	defer cancel()
+	req, err := http.NewRequestWithContext(ctx, "GET", "http://localhost:8080/cotacao", nil)
+
 	if err != nil {
 		fmt.Println("Erro ao fazer a requisição:", err)
+		return nil, err
 	}
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Println("Erro ao fazer a requisição:", err)
+		return nil, err
+	}
+
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
